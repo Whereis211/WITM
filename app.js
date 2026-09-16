@@ -8,8 +8,11 @@
     sales: [],
     settings: { defaultCommissionRate: 10 },
     range: "all",
+    search: "",
     sort: { field: "date", dir: "desc" },
-    editingId: null
+    editingId: null,
+    pageSize: 50,
+    showAll: false
   };
 
   // ---------- persistence ----------
@@ -90,7 +93,12 @@
   }
 
   function filteredSales() {
-    return state.sales.filter(function (s) { return inRange(s.date, state.range); });
+    var term = state.search.trim().toLowerCase();
+    return state.sales.filter(function (s) {
+      if (!inRange(s.date, state.range)) return false;
+      if (term && (s.item || "").toLowerCase().indexOf(term) === -1) return false;
+      return true;
+    });
   }
 
   function sortedSales(list) {
@@ -98,7 +106,7 @@
     var dir = state.sort.dir === "asc" ? 1 : -1;
     return list.slice().sort(function (a, b) {
       var av = a[field], bv = b[field];
-      if (field === "amount" || field === "commission" || field === "commissionRate") {
+      if (field === "amount" || field === "commission" || field === "commissionRate" || field === "qty") {
         av = Number(av) || 0;
         bv = Number(bv) || 0;
       }
@@ -167,16 +175,28 @@
 
   function renderTable() {
     var tbody = document.getElementById("salesTableBody");
-    var list = sortedSales(filteredSales());
+    var fullList = sortedSales(filteredSales());
+    var visibleList = state.showAll ? fullList : fullList.slice(0, state.pageSize);
     tbody.innerHTML = "";
 
-    document.getElementById("emptyState").classList.toggle("hidden", list.length !== 0);
+    document.getElementById("emptyState").classList.toggle("hidden", fullList.length !== 0);
 
-    list.forEach(function (s) {
+    var footer = document.getElementById("tableFooter");
+    if (fullList.length > state.pageSize) {
+      footer.classList.remove("hidden");
+      document.getElementById("tableFooterCount").textContent =
+        "Showing " + visibleList.length + " of " + fullList.length + " sales";
+      document.getElementById("showAllBtn").textContent = state.showAll ? "Show latest " + state.pageSize : "Show all";
+    } else {
+      footer.classList.add("hidden");
+    }
+
+    visibleList.forEach(function (s) {
       var tr = document.createElement("tr");
 
       tr.appendChild(td(formatDate(s.date), "Date"));
       tr.appendChild(td(s.item || "—", "Item"));
+      tr.appendChild(td(String(Number(s.qty) || 1), "Qty"));
       tr.appendChild(td(money(s.amount), "Amount"));
       tr.appendChild(td((Number(s.commissionRate) || 0).toFixed(1) + "%", "Rate"));
       tr.appendChild(td(money(s.commission), "Commission"));
@@ -218,10 +238,25 @@
     return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   }
 
+  function renderItemSuggestions() {
+    var datalist = document.getElementById("itemSuggestions");
+    datalist.innerHTML = "";
+    var seen = {};
+    state.sales.forEach(function (s) {
+      if (s.item && !seen[s.item]) {
+        seen[s.item] = true;
+        var opt = document.createElement("option");
+        opt.value = s.item;
+        datalist.appendChild(opt);
+      }
+    });
+  }
+
   function renderAll() {
     renderSummary();
     renderChart();
     renderTable();
+    renderItemSuggestions();
   }
 
   // ---------- CRUD ----------
@@ -255,6 +290,7 @@
     document.getElementById("saleId").value = sale.id;
     document.getElementById("saleDate").value = sale.date;
     document.getElementById("saleItem").value = sale.item || "";
+    document.getElementById("saleQty").value = Number(sale.qty) || 1;
     document.getElementById("saleAmount").value = sale.amount;
     document.getElementById("saleCommissionRate").value = sale.commissionRate;
     document.getElementById("saleCommissionAmount").value = sale.commission;
@@ -265,23 +301,35 @@
     document.getElementById("saleForm").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function resetForm() {
+  function resetForm(opts) {
+    opts = opts || {};
     state.editingId = null;
-    var form = document.getElementById("saleForm");
-    form.reset();
-    document.getElementById("saleDate").value = todayISO();
-    document.getElementById("saleCommissionRate").value = state.settings.defaultCommissionRate;
     document.getElementById("formTitle").textContent = "Add Sale";
     document.getElementById("submitBtn").textContent = "Add Sale";
     document.getElementById("cancelEditBtn").classList.add("hidden");
+    document.getElementById("saleId").value = "";
+
+    if (opts.keepItem) {
+      // Fast repeat-entry: leave item/qty/rate as-is, clear the amount and refocus it
+      // so logging several sales of the same item is just "type price, hit Enter".
+      document.getElementById("saleDate").value = todayISO();
+      document.getElementById("saleAmount").value = "";
+      document.getElementById("saleCommissionAmount").value = "";
+      document.getElementById("saleAmount").focus();
+    } else {
+      document.getElementById("saleForm").reset();
+      document.getElementById("saleDate").value = todayISO();
+      document.getElementById("saleQty").value = 1;
+      document.getElementById("saleCommissionRate").value = state.settings.defaultCommissionRate;
+    }
   }
 
   // ---------- CSV export ----------
 
   function exportCSV() {
-    var rows = [["Date", "Item", "Amount", "Commission Rate (%)", "Commission ($)"]];
+    var rows = [["Date", "Item", "Qty", "Amount", "Commission Rate (%)", "Commission ($)"]];
     sortedSales(state.sales).forEach(function (s) {
-      rows.push([s.date, s.item || "", s.amount, s.commissionRate, s.commission]);
+      rows.push([s.date, s.item || "", Number(s.qty) || 1, s.amount, s.commissionRate, s.commission]);
     });
     var csv = rows.map(function (r) {
       return r.map(function (cell) {
@@ -328,24 +376,27 @@
       var amount = parseFloat(document.getElementById("saleAmount").value);
       if (isNaN(amount) || amount < 0) return;
 
+      var wasEdit = !!state.editingId;
       var data = {
         date: document.getElementById("saleDate").value || todayISO(),
         item: document.getElementById("saleItem").value.trim(),
+        qty: parseInt(document.getElementById("saleQty").value, 10) || 1,
         amount: amount,
         commissionRate: parseFloat(document.getElementById("saleCommissionRate").value) || 0,
         commission: parseFloat(document.getElementById("saleCommissionAmount").value) || 0
       };
       addOrUpdateSale(data);
-      resetForm();
+      resetForm(wasEdit ? {} : { keepItem: true });
     });
 
-    document.getElementById("cancelEditBtn").addEventListener("click", resetForm);
+    document.getElementById("cancelEditBtn").addEventListener("click", function () { resetForm(); });
 
     document.querySelectorAll(".filter-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
         document.querySelectorAll(".filter-btn").forEach(function (b) { b.classList.remove("active"); });
         btn.classList.add("active");
         state.range = btn.getAttribute("data-range");
+        state.showAll = false;
         renderAll();
       });
     });
@@ -364,6 +415,18 @@
     });
 
     document.getElementById("exportBtn").addEventListener("click", exportCSV);
+
+    document.getElementById("searchInput").addEventListener("input", function (e) {
+      state.search = e.target.value;
+      state.showAll = false;
+      renderTable();
+      renderSummary();
+    });
+
+    document.getElementById("showAllBtn").addEventListener("click", function () {
+      state.showAll = !state.showAll;
+      renderTable();
+    });
 
     document.getElementById("settingsBtn").addEventListener("click", function () {
       document.getElementById("settingsPanel").classList.toggle("hidden");

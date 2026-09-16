@@ -69,12 +69,17 @@
         </label>
         <label>
           Item / description
-          <input type="text" id="saleItem" placeholder="e.g. Leather jacket" maxlength="120">
+          <input type="text" id="saleItem" list="itemSuggestions" placeholder="e.g. Jordan 1 Chicago" maxlength="120">
+          <datalist id="itemSuggestions"></datalist>
+        </label>
+        <label class="qty-label">
+          Qty
+          <input type="number" id="saleQty" step="1" min="1" value="1">
         </label>
       </div>
       <div class="form-row">
         <label>
-          Sale amount ($)
+          Sale amount, total ($)
           <input type="number" id="saleAmount" step="0.01" min="0" required>
         </label>
         <label>
@@ -86,6 +91,7 @@
           <input type="number" id="saleCommissionAmount" step="0.01" min="0">
         </label>
       </div>
+      <p class="form-hint">Tip: after adding a sale, the item name stays filled in and the amount field is focused — just type the next price and hit Enter to log another.</p>
       <div class="form-row form-actions">
         <button type="submit" class="btn btn-primary" id="submitBtn">Add Sale</button>
         <button type="button" class="btn btn-ghost hidden" id="cancelEditBtn">Cancel</button>
@@ -98,11 +104,13 @@
       <h2>Sales History</h2>
       <button id="exportBtn" class="btn btn-ghost" type="button">Export CSV</button>
     </div>
+    <input type="search" id="searchInput" placeholder="Search by item (e.g. Jordan 1)..." class="search-input">
     <table id="salesTable">
       <thead>
         <tr>
           <th data-sort="date">Date</th>
           <th data-sort="item">Item</th>
+          <th data-sort="qty">Qty</th>
           <th data-sort="amount">Amount</th>
           <th data-sort="commissionRate">Rate</th>
           <th data-sort="commission">Commission</th>
@@ -112,6 +120,10 @@
       <tbody id="salesTableBody"></tbody>
     </table>
     <p id="emptyState" class="empty-state hidden">No sales logged yet. Add your first sale above.</p>
+    <div id="tableFooter" class="table-footer hidden">
+      <span id="tableFooterCount"></span>
+      <button id="showAllBtn" class="btn-link-text" type="button">Show all</button>
+    </div>
   </section>
 
 </div>
