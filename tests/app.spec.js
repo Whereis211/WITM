@@ -46,3 +46,45 @@ test("editing a sale loads it back into the form", async ({ page }) => {
   await expect(page.locator("#formTitle")).toHaveText("Edit Sale");
   await expect(page.locator("#saleItem")).toHaveValue("Leather Jacket");
 });
+
+test("after adding a sale, the item name stays filled in for fast repeat entry", async ({ page }) => {
+  await page.fill("#saleDate", "2026-09-10");
+  await page.fill("#saleItem", "Jordan 1 Chicago");
+  await page.fill("#saleAmount", "180");
+  await page.click("#saleForm button[type=submit]");
+
+  await expect(page.locator("#saleItem")).toHaveValue("Jordan 1 Chicago");
+  await expect(page.locator("#saleAmount")).toHaveValue("");
+  await expect(page.locator("#saleAmount")).toBeFocused();
+
+  await page.fill("#saleAmount", "190");
+  await page.click("#saleForm button[type=submit]");
+
+  await expect(page.locator("#salesTableBody tr")).toHaveCount(2);
+  await expect(page.locator("#sumRevenue")).toHaveText("$370.00");
+});
+
+test("search filters the sales table and summary by item name", async ({ page }) => {
+  await page.fill("#saleItem", "Jordan 1 Chicago");
+  await page.fill("#saleAmount", "180");
+  await page.click("#saleForm button[type=submit]");
+
+  await page.fill("#saleItem", "Yeezy 350");
+  await page.fill("#saleAmount", "220");
+  await page.click("#saleForm button[type=submit]");
+
+  await page.fill("#searchInput", "jordan");
+
+  await expect(page.locator("#salesTableBody tr")).toHaveCount(1);
+  await expect(page.locator("#sumRevenue")).toHaveText("$180.00");
+});
+
+test("qty defaults to 1 and is saved with the sale", async ({ page }) => {
+  await page.fill("#saleItem", "Air Max 90");
+  await page.fill("#saleQty", "5");
+  await page.fill("#saleAmount", "500");
+  await page.click("#saleForm button[type=submit]");
+
+  const qtyCell = page.locator("#salesTableBody tr:first-child td[data-label=Qty]");
+  await expect(qtyCell).toHaveText("5");
+});

@@ -213,6 +213,31 @@ input:focus {
   margin-top: 4px;
 }
 
+.qty-label {
+  max-width: 90px;
+  flex: 0 0 auto;
+}
+
+.form-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.search-input {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding-top: 8px;
+}
+
 .btn {
   border: none;
   border-radius: 6px;
