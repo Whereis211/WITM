@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Browns Sales Tracker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="app-header">
+    <h1>Browns Sales Tracker</h1>
+    <button id="settingsBtn" class="btn btn-ghost" type="button">Settings</button>
+  </header>
+
+  <section id="settingsPanel" class="panel hidden">
+    <h2>Settings</h2>
+    <label>
+      Default commission rate (%)
+      <input type="number" id="defaultCommissionRate" step="0.1" min="0" max="100">
+    </label>
+    <div class="panel-actions">
+      <button id="saveSettingsBtn" class="btn btn-primary" type="button">Save</button>
+      <button id="closeSettingsBtn" class="btn btn-ghost" type="button">Close</button>
+    </div>
+  </section>
+
+  <section class="summary" id="summary">
+    <div class="card">
+      <span class="card-label">Total Sales</span>
+      <span class="card-value" id="sumRevenue">$0.00</span>
+    </div>
+    <div class="card">
+      <span class="card-label">Total Commission</span>
+      <span class="card-value" id="sumCommission">$0.00</span>
+    </div>
+    <div class="card">
+      <span class="card-label"># of Sales</span>
+      <span class="card-value" id="sumCount">0</span>
+    </div>
+    <div class="card">
+      <span class="card-label">Avg Sale</span>
+      <span class="card-value" id="sumAvg">$0.00</span>
+    </div>
+  </section>
+
+  <nav class="filters" id="filters">
+    <button class="filter-btn active" data-range="all" type="button">All Time</button>
+    <button class="filter-btn" data-range="today" type="button">Today</button>
+    <button class="filter-btn" data-range="week" type="button">This Week</button>
+    <button class="filter-btn" data-range="month" type="button">This Month</button>
+    <button class="filter-btn" data-range="year" type="button">This Year</button>
+  </nav>
+
+  <section class="chart-section">
+    <h2>Monthly Commission</h2>
+    <div id="chart" class="chart" role="img" aria-label="Bar chart of monthly commission earned"></div>
+  </section>
+
+  <section class="form-section">
+    <h2 id="formTitle">Add Sale</h2>
+    <form id="saleForm">
+      <input type="hidden" id="saleId">
+      <div class="form-row">
+        <label>
+          Date
+          <input type="date" id="saleDate" required>
+        </label>
+        <label>
+          Item / description
+          <input type="text" id="saleItem" placeholder="e.g. Leather jacket" maxlength="120">
+        </label>
+      </div>
+      <div class="form-row">
+        <label>
+          Sale amount ($)
+          <input type="number" id="saleAmount" step="0.01" min="0" required>
+        </label>
+        <label>
+          Commission (%)
+          <input type="number" id="saleCommissionRate" step="0.1" min="0" max="100">
+        </label>
+        <label>
+          Commission ($)
+          <input type="number" id="saleCommissionAmount" step="0.01" min="0">
+        </label>
+      </div>
+      <div class="form-row form-actions">
+        <button type="submit" class="btn btn-primary" id="submitBtn">Add Sale</button>
+        <button type="button" class="btn btn-ghost hidden" id="cancelEditBtn">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="table-section">
+    <div class="table-header">
+      <h2>Sales History</h2>
+      <button id="exportBtn" class="btn btn-ghost" type="button">Export CSV</button>
+    </div>
+    <table id="salesTable">
+      <thead>
+        <tr>
+          <th data-sort="date">Date</th>
+          <th data-sort="item">Item</th>
+          <th data-sort="amount">Amount</th>
+          <th data-sort="commissionRate">Rate</th>
+          <th data-sort="commission">Commission</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="salesTableBody"></tbody>
+    </table>
+    <p id="emptyState" class="empty-state hidden">No sales logged yet. Add your first sale above.</p>
+  </section>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
