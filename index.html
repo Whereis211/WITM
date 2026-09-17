@@ -16,17 +16,65 @@
 
   <section id="settingsPanel" class="panel hidden">
     <h2>Settings</h2>
-    <label>
-      Weekly quota ($)
-      <input type="number" id="weeklyQuota" step="1" min="0">
-    </label>
-    <label>
-      Commission rate on sales over quota (%)
-      <input type="number" id="commissionRate" step="0.1" min="0" max="100">
-    </label>
+    <div class="settings-grid">
+      <label>
+        Weekly goal ($)
+        <input type="number" id="weeklyGoal" step="1" min="0">
+      </label>
+      <label>
+        Weekly commission threshold ($)
+        <input type="number" id="weeklyQuota" step="1" min="0">
+      </label>
+      <label>
+        Commission rate over threshold (%)
+        <input type="number" id="commissionRate" step="0.1" min="0" max="100">
+      </label>
+      <label>
+        Hourly wage ($)
+        <input type="number" id="hourlyWage" step="0.01" min="0">
+      </label>
+      <label>
+        Monthly target ($)
+        <input type="number" id="monthlyGoal" step="1" min="0">
+      </label>
+      <label>
+        Yearly target ($)
+        <input type="number" id="yearlyGoal" step="1" min="0">
+      </label>
+    </div>
     <div class="panel-actions">
       <button id="saveSettingsBtn" class="btn btn-primary" type="button">Save</button>
       <button id="closeSettingsBtn" class="btn btn-ghost" type="button">Close</button>
+    </div>
+  </section>
+
+  <section class="goal-section">
+    <div class="goal-header">
+      <h2>Weekly Goal</h2>
+      <span class="badge" id="goalPaceStatus">On Pace</span>
+    </div>
+    <div class="goal-numbers">
+      <span class="goal-current" id="goalCurrent">$0.00</span>
+      <span class="goal-of">of <span id="goalTarget">$20,000.00</span></span>
+    </div>
+    <div class="progress progress-lg"><div class="progress-bar" id="goalProgressBar"></div></div>
+    <div class="goal-stats">
+      <div class="goal-stat">
+        <span class="card-label">Remaining</span>
+        <span class="stat-value" id="goalRemaining">$0.00</span>
+      </div>
+      <div class="goal-stat">
+        <span class="card-label">% of Goal</span>
+        <span class="stat-value" id="goalPct">0.0%</span>
+      </div>
+      <div class="goal-stat">
+        <span class="card-label">Days Left</span>
+        <span class="stat-value" id="goalDaysRemaining">7</span>
+      </div>
+      <div class="goal-stat">
+        <span class="card-label">Required/Day</span>
+        <span class="stat-value" id="goalRequiredPerDay">$0.00</span>
+      </div>
     </div>
   </section>
 
@@ -34,13 +82,6 @@
     <div class="card">
       <span class="card-label">Today</span>
       <span class="card-value" id="sumTodayRevenue">$0.00</span>
-    </div>
-    <div class="card">
-      <span class="card-label">This Week</span>
-      <span class="card-value" id="sumWeekRevenue">$0.00</span>
-      <span class="card-sub" id="sumWeekQuotaNote">of $0 quota</span>
-      <div class="progress"><div class="progress-bar" id="sumWeekProgress"></div></div>
-      <span class="card-sub" id="sumWeekCommission">Commission: $0.00</span>
     </div>
     <div class="card">
       <span class="card-label">This Month</span>
@@ -52,6 +93,43 @@
       <span class="card-value" id="sumYearRevenue">$0.00</span>
       <span class="card-sub" id="sumYearCommission">Commission: $0.00</span>
     </div>
+    <div class="card">
+      <span class="card-label">Gross Earnings (Week)</span>
+      <span class="card-value" id="earnGrossEarnings">$0.00</span>
+      <span class="card-sub">Wages + commission</span>
+    </div>
+  </section>
+
+  <section class="earnings-section">
+    <h2>Commission &amp; Earnings This Week</h2>
+    <div class="kv-grid">
+      <div class="kv"><span class="kv-label">Threshold</span><span class="kv-value" id="earnQuota">$9,350.00</span></div>
+      <div class="kv"><span class="kv-label">Over Threshold</span><span class="kv-value" id="earnOverQuota">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Commission</span><span class="kv-value" id="earnCommission">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Hours Worked</span><span class="kv-value" id="earnHours">0.0</span></div>
+      <div class="kv"><span class="kv-label">Base Wages</span><span class="kv-value" id="earnBaseWages">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Gross Earnings</span><span class="kv-value" id="earnGrossEarningsRow">$0.00</span></div>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <h2>Goal Simulator</h2>
+    <p class="form-hint">See how a hypothetical sale would change this week's numbers &mdash; this doesn't save anything.</p>
+    <div class="form-row">
+      <label>
+        Hypothetical additional sale ($)
+        <input type="number" id="simAmount" step="0.01" min="0" value="0">
+      </label>
+      <div class="form-row-btn">
+        <button id="simBtn" class="btn btn-ghost" type="button">Simulate</button>
+      </div>
+    </div>
+    <div class="kv-grid">
+      <div class="kv"><span class="kv-label">New Week Total</span><span class="kv-value" id="simWeekTotal">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Remaining to Goal</span><span class="kv-value" id="simRemaining">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Required/Day After</span><span class="kv-value" id="simRequiredPerDay">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Est. Commission</span><span class="kv-value" id="simCommission">$0.00</span></div>
+    </div>
   </section>
 
   <nav class="filters" id="periodTabs">
@@ -62,8 +140,14 @@
   </nav>
 
   <section class="chart-section">
-    <h2 id="chartTitle">Daily Sales</h2>
-    <div id="chart" class="chart" role="img" aria-label="Bar chart of sales totals"></div>
+    <div class="table-header">
+      <h2 id="chartTitle">Daily Sales</h2>
+      <nav class="filters filters-sm" id="chartModeTabs">
+        <button class="filter-btn active" data-mode="sales" type="button">Sales</button>
+        <button class="filter-btn" data-mode="commission" type="button">Commission</button>
+      </nav>
+    </div>
+    <div id="chart" class="chart" role="img" aria-label="Bar chart of sales or commission totals"></div>
   </section>
 
   <section class="form-section">
@@ -78,6 +162,10 @@
         <label>
           Sales total for the day ($)
           <input type="number" id="saleAmount" step="0.01" min="0" required>
+        </label>
+        <label>
+          Hours worked
+          <input type="number" id="saleHours" step="0.25" min="0">
         </label>
       </div>
       <p class="form-hint">Entering a new total for a date that's already logged updates it, so you can just re-enter your running total as the day goes.</p>
@@ -101,6 +189,34 @@
     <div id="tableFooter" class="table-footer hidden">
       <span id="tableFooterCount"></span>
       <button id="showAllBtn" class="btn-link-text" type="button">Show all</button>
+    </div>
+  </section>
+
+  <section class="records-section">
+    <h2>Records &amp; Streaks &#127942;</h2>
+    <div class="kv-grid">
+      <div class="kv"><span class="kv-label">Best Day</span><span class="kv-value" id="recBestDay">&mdash;</span></div>
+      <div class="kv"><span class="kv-label">Best Week</span><span class="kv-value" id="recBestWeek">&mdash;</span></div>
+      <div class="kv"><span class="kv-label">Average Week</span><span class="kv-value" id="recAvgWeek">$0.00</span></div>
+      <div class="kv"><span class="kv-label">$20K Weeks</span><span class="kv-value" id="recGoalWeeksCount">0</span></div>
+      <div class="kv"><span class="kv-label">Highest Sales/Hour</span><span class="kv-value" id="recHighestSPH">&mdash;</span></div>
+      <div class="kv"><span class="kv-label">Current Streak</span><span class="kv-value" id="recCurrentStreak">0 weeks</span></div>
+      <div class="kv"><span class="kv-label">Longest Streak</span><span class="kv-value" id="recLongestStreak">0 weeks</span></div>
+      <div class="kv"><span class="kv-label">Monthly Target</span><span class="kv-value"><span id="recMonthlyPct">0.0%</span> of <span id="recMonthlyTarget">$0.00</span></span></div>
+      <div class="kv"><span class="kv-label">Yearly Target</span><span class="kv-value"><span id="recYearlyPct">0.0%</span> of <span id="recYearlyTarget">$0.00</span></span></div>
+    </div>
+  </section>
+
+  <section class="forecast-section">
+    <h2>Sales Forecast</h2>
+    <p class="form-hint">Based on your trailing 4-week average.</p>
+    <div class="kv-grid">
+      <div class="kv"><span class="kv-label">Projected Weekly</span><span class="kv-value" id="fcWeekly">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Projected Monthly</span><span class="kv-value" id="fcMonthly">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Projected Yearly</span><span class="kv-value" id="fcYearly">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Projected Weekly Commission</span><span class="kv-value" id="fcWeeklyCommission">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Projected Monthly Commission</span><span class="kv-value" id="fcMonthlyCommission">$0.00</span></div>
+      <div class="kv"><span class="kv-label">Projected Yearly Commission</span><span class="kv-value" id="fcYearlyCommission">$0.00</span></div>
     </div>
   </section>
 
