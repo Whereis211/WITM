@@ -187,3 +187,116 @@ test("connecting sync without a real API endpoint fails gracefully and keeps loc
   await expect(page.locator("#sumTodayRevenue")).toHaveText("$777.00");
   expect(errors).toEqual([]);
 });
+
+test("AI coach shows an empty state and disabled button with no data logged", async ({ page }) => {
+  await expect(page.locator("#coachPlaceholder")).toBeVisible();
+  await expect(page.locator("#coachPlaceholder")).toHaveText(/Log a few days of sales first/);
+  await expect(page.locator("#coachAnalyzeBtn")).toBeDisabled();
+  await expect(page.locator("#coachLoading")).toBeHidden();
+  await expect(page.locator("#coachResults")).toBeHidden();
+  await expect(page.locator("#coachError")).toBeHidden();
+});
+
+test("AI coach renders a successful analysis and separates it from real sales data", async ({ page }) => {
+  await page.fill("#saleAmount", "2200");
+  await page.fill("#saleHours", "8");
+  await page.click("#saleForm button[type=submit]");
+
+  await expect(page.locator("#coachAnalyzeBtn")).toBeEnabled();
+  await expect(page.locator("#coachPlaceholder")).toHaveText(/Click.*Analyze My Performance/);
+
+  const mockAnalysis = {
+    performanceSummary: "You're at $2,200 for the week so far.",
+    goalAnalysis: "You need $17,800 more over 4 days to hit $20,000.",
+    nextShiftPlan: "Aim for $4,450 next shift to stay on the required pace.",
+    trendAnalysis: "Not enough history yet for a week-over-week trend.",
+    actionableAdvice: ["Log a full week of data to unlock trend analysis."],
+    weeklyReview: null
+  };
+
+  let capturedRequestBody = null;
+  await page.route("**/api/coach", async (route) => {
+    capturedRequestBody = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(mockAnalysis) });
+  });
+
+  await page.click("#coachAnalyzeBtn");
+
+  await expect(page.locator("#coachResults")).toBeVisible();
+  await expect(page.locator("#coachLoading")).toBeHidden();
+  await expect(page.locator("#coachSummary")).toHaveText(mockAnalysis.performanceSummary);
+  await expect(page.locator("#coachGoalAnalysis")).toHaveText(mockAnalysis.goalAnalysis);
+  await expect(page.locator("#coachNextShift")).toHaveText(mockAnalysis.nextShiftPlan);
+  await expect(page.locator("#coachAdvice li")).toHaveCount(1);
+  await expect(page.locator("#coachWeeklyReviewBlock")).toBeHidden(); // null weeklyReview stays hidden
+  await expect(page.locator(".badge-ai")).toHaveText("AI-Generated"); // visually separates AI content from tracked data
+
+  // The app computed the numbers itself and sent them as facts, not raw entries for the model to add up.
+  expect(capturedRequestBody.goal.currentWeekRevenue).toBe(2200);
+  expect(capturedRequestBody.goal.weeklyGoal).toBe(20000);
+  expect(capturedRequestBody.goal.remaining).toBe(17800);
+});
+
+test("AI coach shows an error state and can retry", async ({ page }) => {
+  await page.fill("#saleAmount", "500");
+  await page.click("#saleForm button[type=submit]");
+
+  await page.route("**/api/coach", async (route) => {
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "The AI coach isn't configured on the server yet." }) });
+  });
+
+  await page.click("#coachAnalyzeBtn");
+
+  await expect(page.locator("#coachError")).toBeVisible();
+  await expect(page.locator("#coachErrorMessage")).toHaveText(/isn't configured/);
+  await expect(page.locator("#coachResults")).toBeHidden();
+
+  // Retry succeeds once the route starts returning a good response.
+  await page.unroute("**/api/coach");
+  await page.route("**/api/coach", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        performanceSummary: "Recovered.",
+        goalAnalysis: "",
+        nextShiftPlan: "",
+        trendAnalysis: "",
+        actionableAdvice: [],
+        weeklyReview: null
+      })
+    });
+  });
+  await page.click("#coachRetryBtn");
+  await expect(page.locator("#coachResults")).toBeVisible();
+  await expect(page.locator("#coachSummary")).toHaveText("Recovered.");
+});
+
+test("AI coach flags a completed analysis as stale after the data changes", async ({ page }) => {
+  await page.fill("#saleAmount", "1000");
+  await page.click("#saleForm button[type=submit]");
+
+  await page.route("**/api/coach", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        performanceSummary: "Summary.",
+        goalAnalysis: "",
+        nextShiftPlan: "",
+        trendAnalysis: "",
+        actionableAdvice: [],
+        weeklyReview: null
+      })
+    });
+  });
+  await page.click("#coachAnalyzeBtn");
+  await expect(page.locator("#coachResults")).toBeVisible();
+  await expect(page.locator("#coachStaleNote")).toBeHidden();
+
+  await page.fill("#saleAmount", "1500");
+  await page.click("#saleForm button[type=submit]");
+
+  await expect(page.locator("#coachResults")).toBeVisible(); // old analysis stays visible
+  await expect(page.locator("#coachStaleNote")).toBeVisible(); // but flagged as stale
+});

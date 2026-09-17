@@ -95,6 +95,58 @@
     </div>
   </section>
 
+  <section class="coach-section">
+    <div class="table-header">
+      <h2>AI Sales Coach</h2>
+      <span class="badge badge-ai">AI-Generated</span>
+    </div>
+    <p class="form-hint">Reads your real numbers below and gives you a coaching read — not a substitute for your own judgment.</p>
+    <div class="coach-actions">
+      <button id="coachAnalyzeBtn" class="btn btn-primary" type="button">Analyze My Performance</button>
+      <span id="coachUpdatedAt" class="form-hint"></span>
+    </div>
+
+    <p id="coachPlaceholder" class="empty-state">Log a few days of sales first, then I can analyze your performance.</p>
+
+    <div id="coachLoading" class="coach-loading hidden">
+      <span class="coach-spinner"></span>
+      <span>Analyzing your performance…</span>
+    </div>
+
+    <div id="coachError" class="coach-error hidden">
+      <span id="coachErrorMessage">Something went wrong.</span>
+      <button id="coachRetryBtn" class="btn-link-text" type="button">Try again</button>
+    </div>
+
+    <div id="coachResults" class="coach-results hidden">
+      <div class="coach-block">
+        <h3>Performance Summary</h3>
+        <p id="coachSummary"></p>
+      </div>
+      <div class="coach-block">
+        <h3>Goal Analysis</h3>
+        <p id="coachGoalAnalysis"></p>
+      </div>
+      <div class="coach-block">
+        <h3>Next Shift Plan</h3>
+        <p id="coachNextShift"></p>
+      </div>
+      <div class="coach-block">
+        <h3>Trend Analysis</h3>
+        <p id="coachTrend"></p>
+      </div>
+      <div class="coach-block">
+        <h3>Actionable Advice</h3>
+        <ul id="coachAdvice"></ul>
+      </div>
+      <div class="coach-block hidden" id="coachWeeklyReviewBlock">
+        <h3>Weekly Review</h3>
+        <p id="coachWeeklyReview"></p>
+      </div>
+      <p id="coachStaleNote" class="coach-stale hidden">Your data has changed since this analysis — click Analyze again to refresh it.</p>
+    </div>
+  </section>
+
   <section class="summary" id="summary">
     <div class="card">
       <span class="card-label">Today</span>
