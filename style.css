@@ -18,6 +18,8 @@
   --good-bg: rgba(52, 211, 153, 0.15);
   --bad: #fbbf24;
   --bad-bg: rgba(251, 191, 36, 0.15);
+  --ai-accent: #a78bfa;
+  --ai-soft: rgba(167, 139, 250, 0.12);
   --radius: 14px;
   --radius-sm: 8px;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -44,6 +46,8 @@
     --good-bg: #dcfce7;
     --bad: #d97706;
     --bad-bg: #fef3c7;
+    --ai-accent: #7c3aed;
+    --ai-soft: rgba(124, 58, 237, 0.08);
     --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
     --shadow-md: 0 12px 24px rgba(16, 24, 40, 0.08);
   }
@@ -118,7 +122,8 @@ h2::before {
 .goal-section,
 .earnings-section,
 .records-section,
-.forecast-section {
+.forecast-section,
+.coach-section {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -132,7 +137,8 @@ h2::before {
 .goal-section,
 .earnings-section,
 .records-section,
-.forecast-section {
+.forecast-section,
+.coach-section {
   padding: 20px;
   margin-bottom: 24px;
 }
@@ -388,6 +394,13 @@ input:focus {
 }
 
 .btn:active { transform: scale(0.96); }
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
 
 .btn:focus-visible {
   outline: 2px solid var(--accent);
@@ -669,11 +682,116 @@ tbody tr:hover {
   opacity: 0.6;
 }
 
+/* AI Sales Coach — a distinct violet accent (vs. the orange used for real
+   sales data) so AI-generated insight is never mistaken for a tracked number. */
+.coach-section {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--ai-soft);
+  background:
+    radial-gradient(120% 140% at 100% 0%, var(--ai-soft), transparent 60%),
+    var(--surface);
+}
+
+.badge-ai {
+  background: var(--ai-soft);
+  color: var(--ai-accent);
+}
+
+.coach-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 14px 0 18px;
+  position: relative;
+}
+
+.coach-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  padding: 18px 0;
+  font-size: 0.9rem;
+}
+
+.coach-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--ai-accent);
+  animation: coachSpin 0.7s linear infinite;
+  flex: none;
+}
+
+@keyframes coachSpin {
+  to { transform: rotate(360deg); }
+}
+
+.coach-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--danger);
+  font-size: 0.9rem;
+  padding: 14px 0;
+}
+
+.coach-results {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coach-block {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ai-accent);
+}
+
+.coach-block h3 {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ai-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.coach-block p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.coach-block ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.coach-stale {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--bad);
+}
+
 @media (max-width: 600px) {
   .app { padding: 20px 14px 56px; }
   .summary { grid-template-columns: repeat(2, 1fr); }
   .settings-grid { grid-template-columns: 1fr; }
-  .goal-section { padding: 20px 18px; }
+  .goal-section, .coach-section { padding: 20px 18px; }
   .goal-stats { grid-template-columns: repeat(2, 1fr); }
   .kv-grid { grid-template-columns: repeat(2, 1fr); }
   table, thead, tbody, th, td, tr { display: block; }

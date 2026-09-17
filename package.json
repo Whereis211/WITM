@@ -5,6 +5,7 @@
     "test": "playwright test"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.126.0",
     "@upstash/redis": "^1.34.0"
   },
   "devDependencies": {

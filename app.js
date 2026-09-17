@@ -21,7 +21,8 @@
     chartMode: "sales", // sales | commission
     editingId: null,
     pageSize: 50,
-    showAll: false
+    showAll: false,
+    coachResultsShown: false // whether a completed analysis is currently on screen
   };
 
   // ---------- persistence ----------
@@ -456,6 +457,192 @@
     document.getElementById("fcYearlyCommission").textContent = money(f.yearlyCommission);
   }
 
+  // ---------- AI Sales Coach ----------
+  // The app computes every number itself (goal pace, trends, records, etc.)
+  // and sends only those already-computed figures to the server — the model
+  // is asked to narrate/advise, never to do arithmetic, so it can't
+  // hallucinate a dollar figure. No names, passcodes, or device info are
+  // ever included in the payload.
+
+  function buildCoachContext() {
+    var today = todayISO();
+    var weeklyRows = buildWeeklyRows();
+    var dailyRowsDesc = buildDailyRows().slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    var weekStart = mondayOf(today);
+    var currentWeek = weeklyRows.find(function (w) { return w.weekStart === weekStart; }) ||
+      { revenue: 0, overQuota: 0, commission: 0, hours: 0, baseWages: 0, grossEarnings: 0, goalMet: false };
+
+    var elapsedDays = isoDayOfWeek(today);
+    var daysRemaining = 8 - elapsedDays;
+    var remaining = Math.max(0, state.settings.weeklyGoal - currentWeek.revenue);
+    var pctOfGoal = state.settings.weeklyGoal > 0 ? (currentWeek.revenue / state.settings.weeklyGoal) * 100 : 0;
+    var avgPerDaySoFar = elapsedDays > 0 ? currentWeek.revenue / elapsedDays : 0;
+    var requiredPerDay = daysRemaining > 0 ? remaining / daysRemaining : 0;
+    var projectedWeekTotal = avgPerDaySoFar * 7;
+    var onPace = projectedWeekTotal >= state.settings.weeklyGoal;
+
+    var prevWeekStart = addDays(weekStart, -7);
+    var prevWeek = weeklyRows.find(function (w) { return w.weekStart === prevWeekStart; });
+    var lastWeekAvgPerDay = prevWeek ? prevWeek.revenue / 7 : null;
+    var weekOverWeekPct = (prevWeek && prevWeek.revenue > 0)
+      ? ((currentWeek.revenue - prevWeek.revenue) / prevWeek.revenue) * 100
+      : null;
+
+    var recentDaily = dailyRowsDesc.slice(0, 14);
+    var recentWithHours = recentDaily.filter(function (d) { return d.salesPerHour !== null; });
+    var recent3 = recentWithHours.slice(0, 3);
+    var prior3 = recentWithHours.slice(3, 6);
+    function avgSPH(list) {
+      if (!list.length) return null;
+      return list.reduce(function (s, d) { return s + d.salesPerHour; }, 0) / list.length;
+    }
+    var recentAvgSPH = avgSPH(recent3);
+    var priorAvgSPH = avgSPH(prior3);
+    var salesPerHourTrendPct = (recentAvgSPH !== null && priorAvgSPH) ? ((recentAvgSPH - priorAvgSPH) / priorAvgSPH) * 100 : null;
+
+    var records = computeRecords();
+    var forecast = computeForecast();
+
+    var recentWeeklyRows = weeklyRows.slice().sort(function (a, b) { return a.weekStart < b.weekStart ? 1 : -1; }).slice(0, 8);
+    var hasCompletedWeek = weeklyRows.some(function (w) { return w.weekStart !== weekStart; });
+
+    function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
+    function round1(n) { return n === null ? null : Math.round(Number(n) * 10) / 10; }
+
+    return {
+      today: today,
+      goal: {
+        weeklyGoal: state.settings.weeklyGoal,
+        currentWeekRevenue: round2(currentWeek.revenue),
+        remaining: round2(remaining),
+        pctOfGoal: round1(pctOfGoal),
+        elapsedDays: elapsedDays,
+        daysRemaining: daysRemaining,
+        avgPerDaySoFar: round2(avgPerDaySoFar),
+        requiredPerDay: round2(requiredPerDay),
+        projectedWeekTotal: round2(projectedWeekTotal),
+        onPace: onPace,
+        goalHit: currentWeek.revenue >= state.settings.weeklyGoal
+      },
+      commission: {
+        threshold: state.settings.weeklyQuota,
+        rate: state.settings.commissionRate,
+        overThreshold: round2(currentWeek.overQuota || 0),
+        commissionThisWeek: round2(currentWeek.commission),
+        hourlyWage: state.settings.hourlyWage,
+        hoursThisWeek: round2(currentWeek.hours || 0),
+        baseWages: round2(currentWeek.baseWages || 0),
+        grossEarnings: round2(currentWeek.grossEarnings || 0)
+      },
+      dailyHistory: recentDaily.map(function (d) {
+        return { date: d.date, amount: round2(d.revenue), hours: round2(d.hours || 0), salesPerHour: d.salesPerHour !== null ? round2(d.salesPerHour) : null };
+      }),
+      weeklyHistory: recentWeeklyRows.map(function (w) {
+        return { weekLabel: formatWeekLabel(w.weekStart), weekStart: w.weekStart, revenue: round2(w.revenue), goalMet: w.goalMet, commission: round2(w.commission) };
+      }),
+      trends: {
+        weekOverWeekPct: round1(weekOverWeekPct),
+        thisWeekAvgPerDay: round2(avgPerDaySoFar),
+        lastWeekAvgPerDay: lastWeekAvgPerDay !== null ? round2(lastWeekAvgPerDay) : null,
+        recentAvgSalesPerHour: recentAvgSPH !== null ? round2(recentAvgSPH) : null,
+        priorAvgSalesPerHour: priorAvgSPH !== null ? round2(priorAvgSPH) : null,
+        salesPerHourTrendPct: round1(salesPerHourTrendPct)
+      },
+      records: {
+        bestDay: records.bestDay ? { date: records.bestDay.date, amount: round2(records.bestDay.revenue) } : null,
+        bestWeek: records.bestWeek ? { weekLabel: formatWeekLabel(records.bestWeek.weekStart), amount: round2(records.bestWeek.revenue) } : null,
+        avgWeek: round2(records.avgWeek),
+        goalWeeksCount: records.goalWeeksCount,
+        currentStreak: records.currentStreak,
+        longestStreak: records.longestStreak,
+        highestSalesPerHour: records.highestSPH ? { date: records.highestSPH.date, amount: round2(records.highestSPH.salesPerHour) } : null
+      },
+      forecast: {
+        trailingWeeklyAvg: round2(forecast.weekly),
+        projectedMonthly: round2(forecast.monthly),
+        projectedYearly: round2(forecast.yearly)
+      },
+      hasCompletedWeek: hasCompletedWeek
+    };
+  }
+
+  function showCoachState(name) {
+    ["coachPlaceholder", "coachLoading", "coachError", "coachResults"].forEach(function (id) {
+      var expected = "coach" + name.charAt(0).toUpperCase() + name.slice(1);
+      document.getElementById(id).classList.toggle("hidden", id !== expected);
+    });
+    document.getElementById("coachAnalyzeBtn").disabled = (name === "loading") || state.sales.length === 0;
+    state.coachResultsShown = (name === "results");
+    if (name !== "results") {
+      document.getElementById("coachStaleNote").classList.add("hidden");
+    }
+  }
+
+  function renderCoachAvailability() {
+    var hasData = state.sales.length > 0;
+    document.getElementById("coachAnalyzeBtn").disabled = !hasData;
+    var placeholder = document.getElementById("coachPlaceholder");
+    if (!placeholder.classList.contains("hidden")) {
+      placeholder.textContent = hasData
+        ? "Click “Analyze My Performance” to get your personalized coaching insights."
+        : "Log a few days of sales first, then I can analyze your performance.";
+    }
+  }
+
+  function markCoachStale() {
+    if (state.coachResultsShown) {
+      document.getElementById("coachStaleNote").classList.remove("hidden");
+    }
+  }
+
+  function renderCoachResults(analysis) {
+    document.getElementById("coachSummary").textContent = analysis.performanceSummary || "";
+    document.getElementById("coachGoalAnalysis").textContent = analysis.goalAnalysis || "";
+    document.getElementById("coachNextShift").textContent = analysis.nextShiftPlan || "";
+    document.getElementById("coachTrend").textContent = analysis.trendAnalysis || "";
+
+    var adviceList = document.getElementById("coachAdvice");
+    adviceList.innerHTML = "";
+    (analysis.actionableAdvice || []).forEach(function (item) {
+      var li = document.createElement("li");
+      li.textContent = item;
+      adviceList.appendChild(li);
+    });
+
+    var weeklyBlock = document.getElementById("coachWeeklyReviewBlock");
+    if (analysis.weeklyReview) {
+      document.getElementById("coachWeeklyReview").textContent = analysis.weeklyReview;
+      weeklyBlock.classList.remove("hidden");
+    } else {
+      weeklyBlock.classList.add("hidden");
+    }
+
+    document.getElementById("coachUpdatedAt").textContent =
+      "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function runCoachAnalysis() {
+    if (state.sales.length === 0) return;
+    showCoachState("loading");
+    var context = buildCoachContext();
+    fetch("/api/coach", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(context)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error((data && data.error) || "Something went wrong.");
+        return data;
+      });
+    }).then(function (analysis) {
+      renderCoachResults(analysis);
+      showCoachState("results");
+    }).catch(function (err) {
+      document.getElementById("coachErrorMessage").textContent = err.message || "Couldn't reach the AI coach. Try again.";
+      showCoachState("error");
+    });
+  }
+
   function getPeriodRows() {
     var weeklyRows = buildWeeklyRows();
     if (state.period === "daily") return buildDailyRows().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
@@ -642,6 +829,7 @@
     renderBreakdown();
     renderRecords();
     renderForecast();
+    renderCoachAvailability();
   }
 
   // ---------- CRUD ----------
@@ -667,6 +855,7 @@
     saveSales();
     renderAll();
     pushToServer();
+    markCoachStale();
   }
 
   function deleteSale(id) {
@@ -675,6 +864,7 @@
     saveSales();
     renderAll();
     pushToServer();
+    markCoachStale();
   }
 
   function startEdit(id) {
@@ -822,6 +1012,9 @@
 
     document.getElementById("simBtn").addEventListener("click", runSimulator);
 
+    document.getElementById("coachAnalyzeBtn").addEventListener("click", runCoachAnalysis);
+    document.getElementById("coachRetryBtn").addEventListener("click", runCoachAnalysis);
+
     document.getElementById("settingsBtn").addEventListener("click", function () {
       document.getElementById("settingsPanel").classList.toggle("hidden");
     });
@@ -843,6 +1036,7 @@
       document.getElementById("settingsPanel").classList.add("hidden");
       renderAll();
       pushToServer();
+      markCoachStale();
     });
 
     document.getElementById("syncConnectBtn").addEventListener("click", function () {
