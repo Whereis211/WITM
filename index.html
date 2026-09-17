@@ -17,8 +17,12 @@
   <section id="settingsPanel" class="panel hidden">
     <h2>Settings</h2>
     <label>
-      Default commission rate (%)
-      <input type="number" id="defaultCommissionRate" step="0.1" min="0" max="100">
+      Weekly quota ($)
+      <input type="number" id="weeklyQuota" step="1" min="0">
+    </label>
+    <label>
+      Commission rate on sales over quota (%)
+      <input type="number" id="commissionRate" step="0.1" min="0" max="100">
     </label>
     <div class="panel-actions">
       <button id="saveSettingsBtn" class="btn btn-primary" type="button">Save</button>
@@ -28,38 +32,42 @@
 
   <section class="summary" id="summary">
     <div class="card">
-      <span class="card-label">Total Sales</span>
-      <span class="card-value" id="sumRevenue">$0.00</span>
+      <span class="card-label">Today</span>
+      <span class="card-value" id="sumTodayRevenue">$0.00</span>
     </div>
     <div class="card">
-      <span class="card-label">Total Commission</span>
-      <span class="card-value" id="sumCommission">$0.00</span>
+      <span class="card-label">This Week</span>
+      <span class="card-value" id="sumWeekRevenue">$0.00</span>
+      <span class="card-sub" id="sumWeekQuotaNote">of $0 quota</span>
+      <div class="progress"><div class="progress-bar" id="sumWeekProgress"></div></div>
+      <span class="card-sub" id="sumWeekCommission">Commission: $0.00</span>
     </div>
     <div class="card">
-      <span class="card-label"># of Sales</span>
-      <span class="card-value" id="sumCount">0</span>
+      <span class="card-label">This Month</span>
+      <span class="card-value" id="sumMonthRevenue">$0.00</span>
+      <span class="card-sub" id="sumMonthCommission">Commission: $0.00</span>
     </div>
     <div class="card">
-      <span class="card-label">Avg Sale</span>
-      <span class="card-value" id="sumAvg">$0.00</span>
+      <span class="card-label">This Year</span>
+      <span class="card-value" id="sumYearRevenue">$0.00</span>
+      <span class="card-sub" id="sumYearCommission">Commission: $0.00</span>
     </div>
   </section>
 
-  <nav class="filters" id="filters">
-    <button class="filter-btn active" data-range="all" type="button">All Time</button>
-    <button class="filter-btn" data-range="today" type="button">Today</button>
-    <button class="filter-btn" data-range="week" type="button">This Week</button>
-    <button class="filter-btn" data-range="month" type="button">This Month</button>
-    <button class="filter-btn" data-range="year" type="button">This Year</button>
+  <nav class="filters" id="periodTabs">
+    <button class="filter-btn active" data-period="daily" type="button">Daily</button>
+    <button class="filter-btn" data-period="weekly" type="button">Weekly</button>
+    <button class="filter-btn" data-period="monthly" type="button">Monthly</button>
+    <button class="filter-btn" data-period="yearly" type="button">Yearly</button>
   </nav>
 
   <section class="chart-section">
-    <h2>Monthly Commission</h2>
-    <div id="chart" class="chart" role="img" aria-label="Bar chart of monthly commission earned"></div>
+    <h2 id="chartTitle">Daily Sales</h2>
+    <div id="chart" class="chart" role="img" aria-label="Bar chart of sales totals"></div>
   </section>
 
   <section class="form-section">
-    <h2 id="formTitle">Add Sale</h2>
+    <h2 id="formTitle">Add Daily Total</h2>
     <form id="saleForm">
       <input type="hidden" id="saleId">
       <div class="form-row">
@@ -68,32 +76,13 @@
           <input type="date" id="saleDate" required>
         </label>
         <label>
-          Item / description
-          <input type="text" id="saleItem" list="itemSuggestions" placeholder="e.g. Jordan 1 Chicago" maxlength="120">
-          <datalist id="itemSuggestions"></datalist>
-        </label>
-        <label class="qty-label">
-          Qty
-          <input type="number" id="saleQty" step="1" min="1" value="1">
-        </label>
-      </div>
-      <div class="form-row">
-        <label>
-          Sale amount, total ($)
+          Sales total for the day ($)
           <input type="number" id="saleAmount" step="0.01" min="0" required>
         </label>
-        <label>
-          Commission (%)
-          <input type="number" id="saleCommissionRate" step="0.1" min="0" max="100">
-        </label>
-        <label>
-          Commission ($)
-          <input type="number" id="saleCommissionAmount" step="0.01" min="0">
-        </label>
       </div>
-      <p class="form-hint">Tip: after adding a sale, the item name stays filled in and the amount field is focused — just type the next price and hit Enter to log another.</p>
+      <p class="form-hint">Entering a new total for a date that's already logged updates it, so you can just re-enter your running total as the day goes.</p>
       <div class="form-row form-actions">
-        <button type="submit" class="btn btn-primary" id="submitBtn">Add Sale</button>
+        <button type="submit" class="btn btn-primary" id="submitBtn">Save</button>
         <button type="button" class="btn btn-ghost hidden" id="cancelEditBtn">Cancel</button>
       </div>
     </form>
@@ -101,25 +90,14 @@
 
   <section class="table-section">
     <div class="table-header">
-      <h2>Sales History</h2>
+      <h2 id="breakdownTitle">Daily Breakdown</h2>
       <button id="exportBtn" class="btn btn-ghost" type="button">Export CSV</button>
     </div>
-    <input type="search" id="searchInput" placeholder="Search by item (e.g. Jordan 1)..." class="search-input">
-    <table id="salesTable">
-      <thead>
-        <tr>
-          <th data-sort="date">Date</th>
-          <th data-sort="item">Item</th>
-          <th data-sort="qty">Qty</th>
-          <th data-sort="amount">Amount</th>
-          <th data-sort="commissionRate">Rate</th>
-          <th data-sort="commission">Commission</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="salesTableBody"></tbody>
+    <table id="breakdownTable">
+      <thead id="breakdownHead"></thead>
+      <tbody id="breakdownBody"></tbody>
     </table>
-    <p id="emptyState" class="empty-state hidden">No sales logged yet. Add your first sale above.</p>
+    <p id="emptyState" class="empty-state hidden">No sales logged yet. Add your first daily total above.</p>
     <div id="tableFooter" class="table-footer hidden">
       <span id="tableFooterCount"></span>
       <button id="showAllBtn" class="btn-link-text" type="button">Show all</button>
