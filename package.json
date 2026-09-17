@@ -4,6 +4,9 @@
   "scripts": {
     "test": "playwright test"
   },
+  "dependencies": {
+    "@upstash/redis": "^1.34.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
     "http-server": "^14.1.1"

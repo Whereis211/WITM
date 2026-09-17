@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b0d10">
 <title>Browns Sales Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -46,6 +50,19 @@
       <button id="saveSettingsBtn" class="btn btn-primary" type="button">Save</button>
       <button id="closeSettingsBtn" class="btn btn-ghost" type="button">Close</button>
     </div>
+
+    <h2 class="sync-heading">Sync Across Devices</h2>
+    <p class="form-hint">Set a passcode here, then enter the same one on another device to share your data. Leave blank to keep this device local-only.</p>
+    <div class="form-row">
+      <label>
+        Sync passcode
+        <input type="text" id="syncPasscode" placeholder="a passcode you choose">
+      </label>
+      <div class="form-row-btn">
+        <button id="syncConnectBtn" class="btn btn-ghost" type="button">Connect &amp; Sync</button>
+      </div>
+    </div>
+    <p class="form-hint" id="syncStatus"></p>
   </section>
 
   <section class="goal-section">

@@ -169,3 +169,21 @@ test("changing settings affects future commission, wages, and goal calculations"
   await expect(page.locator("#earnBaseWages")).toHaveText("$200.00"); // 10 * $20
   await expect(page.locator("#earnGrossEarnings")).toHaveText("$250.00");
 });
+
+test("connecting sync without a real API endpoint fails gracefully and keeps local data", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+
+  await page.fill("#saleAmount", "777");
+  await page.click("#saleForm button[type=submit]");
+
+  await page.click("#settingsBtn");
+  await page.fill("#syncPasscode", "test-passcode");
+  await page.click("#syncConnectBtn");
+
+  // The test server has no /api route, so this should fail without throwing,
+  // report an error status, and leave the locally-saved sale untouched.
+  await expect(page.locator("#syncStatus")).toHaveText(/Sync error|Offline/);
+  await expect(page.locator("#sumTodayRevenue")).toHaveText("$777.00");
+  expect(errors).toEqual([]);
+});
