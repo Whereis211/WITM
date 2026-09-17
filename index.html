@@ -46,6 +46,19 @@
       <button id="saveSettingsBtn" class="btn btn-primary" type="button">Save</button>
       <button id="closeSettingsBtn" class="btn btn-ghost" type="button">Close</button>
     </div>
+
+    <h2 class="sync-heading">Sync Across Devices</h2>
+    <p class="form-hint">Set a passcode here, then enter the same one on another device to share your data. Leave blank to keep this device local-only.</p>
+    <div class="form-row">
+      <label>
+        Sync passcode
+        <input type="text" id="syncPasscode" placeholder="a passcode you choose">
+      </label>
+      <div class="form-row-btn">
+        <button id="syncConnectBtn" class="btn btn-ghost" type="button">Connect &amp; Sync</button>
+      </div>
+    </div>
+    <p class="form-hint" id="syncStatus"></p>
   </section>
 
   <section class="goal-section">

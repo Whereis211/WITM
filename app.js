@@ -3,6 +3,7 @@
 
   var SALES_KEY = "browns_sales_v1";
   var SETTINGS_KEY = "browns_settings_v1";
+  var PASSCODE_KEY = "browns_sync_passcode";
 
   var DEFAULT_SETTINGS = {
     weeklyQuota: 9350,      // threshold above which commission is earned
@@ -58,6 +59,72 @@
     } catch (e) {
       console.warn("Could not save settings to storage", e);
     }
+  }
+
+  // ---------- cross-device sync ----------
+  // Optional: set a passcode (Settings > Sync) to push/pull this data from
+  // /api/data, backed by a key-value store on the server. With no passcode
+  // set, the app behaves exactly as a local-only, offline app.
+
+  function loadPasscode() {
+    try {
+      return localStorage.getItem(PASSCODE_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function savePasscode(p) {
+    try {
+      localStorage.setItem(PASSCODE_KEY, p);
+    } catch (e) {
+      console.warn("Could not save sync passcode", e);
+    }
+  }
+
+  function setSyncStatus(text) {
+    var el = document.getElementById("syncStatus");
+    if (el) el.textContent = text;
+  }
+
+  function pushToServer() {
+    var passcode = loadPasscode();
+    if (!passcode) return;
+    fetch("/api/data", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passcode: passcode, sales: state.sales, settings: state.settings })
+    }).then(function (res) {
+      setSyncStatus(res.ok ? "Synced" : "Sync error: check your passcode");
+    }).catch(function () {
+      setSyncStatus("Offline — will retry on next change");
+    });
+  }
+
+  function pullFromServer() {
+    var passcode = loadPasscode();
+    if (!passcode) return Promise.resolve(false);
+    return fetch("/api/data?passcode=" + encodeURIComponent(passcode))
+      .then(function (res) {
+        if (!res.ok) {
+          setSyncStatus(res.status === 401 ? "Sync error: wrong passcode" : "Sync error");
+          return false;
+        }
+        return res.json().then(function (data) {
+          if (data && Array.isArray(data.sales) && data.settings) {
+            state.sales = data.sales;
+            state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
+            saveSales();
+            saveSettings();
+          }
+          setSyncStatus("Synced");
+          return true;
+        });
+      })
+      .catch(function () {
+        setSyncStatus("Offline — using this device's local data");
+        return false;
+      });
   }
 
   // ---------- helpers ----------
@@ -599,6 +666,7 @@
     state.editingId = null;
     saveSales();
     renderAll();
+    pushToServer();
   }
 
   function deleteSale(id) {
@@ -606,6 +674,7 @@
     state.sales = state.sales.filter(function (s) { return s.id !== id; });
     saveSales();
     renderAll();
+    pushToServer();
   }
 
   function startEdit(id) {
@@ -689,17 +758,22 @@
 
   // ---------- wiring ----------
 
-  function init() {
-    state.sales = loadSales();
-    state.settings = loadSettings();
-
-    document.getElementById("saleDate").value = todayISO();
+  function populateSettingsInputs() {
     document.getElementById("weeklyGoal").value = state.settings.weeklyGoal;
     document.getElementById("weeklyQuota").value = state.settings.weeklyQuota;
     document.getElementById("commissionRate").value = state.settings.commissionRate;
     document.getElementById("hourlyWage").value = state.settings.hourlyWage;
     document.getElementById("monthlyGoal").value = state.settings.monthlyGoal;
     document.getElementById("yearlyGoal").value = state.settings.yearlyGoal;
+  }
+
+  function init() {
+    state.sales = loadSales();
+    state.settings = loadSettings();
+
+    document.getElementById("saleDate").value = todayISO();
+    populateSettingsInputs();
+    document.getElementById("syncPasscode").value = loadPasscode();
 
     document.getElementById("saleForm").addEventListener("submit", function (e) {
       e.preventDefault();
@@ -768,9 +842,32 @@
       saveSettings();
       document.getElementById("settingsPanel").classList.add("hidden");
       renderAll();
+      pushToServer();
     });
 
-    renderAll();
+    document.getElementById("syncConnectBtn").addEventListener("click", function () {
+      var passcode = document.getElementById("syncPasscode").value.trim();
+      savePasscode(passcode);
+      if (!passcode) {
+        setSyncStatus("Sync off — using this device's local data only");
+        return;
+      }
+      setSyncStatus("Connecting…");
+      pullFromServer().then(function () {
+        populateSettingsInputs();
+        renderAll();
+      });
+    });
+
+    if (loadPasscode()) {
+      setSyncStatus("Connecting…");
+      pullFromServer().then(function () {
+        populateSettingsInputs();
+        renderAll();
+      });
+    } else {
+      renderAll();
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);
