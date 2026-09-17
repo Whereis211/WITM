@@ -1,15 +1,21 @@
 # WITM — Browns Sales Tracker
 
-A lightweight web app for tracking your sales at Browns: log each sale's date, amount, and commission, and see running totals and a monthly commission trend.
+A lightweight web app for tracking your sales at Browns: log a running sales total per day, and see it rolled up into daily, weekly, monthly, and yearly totals — with commission calculated against a weekly quota.
+
+## Commission model
+
+- You have a **weekly quota** (default $9,350).
+- Once a week's sales exceed the quota, you earn a **commission rate** (default 4%) on the amount *over* quota.
+- Example: $10,000 in sales in a week, $9,350 quota → 4% × $650 over = **$26** commission that week.
+- Monthly and yearly commission totals are the sum of the weekly commissions falling in that month/year (a week is attributed to the month/year its Monday falls in).
+- Both the quota and rate are configurable in Settings.
 
 ## Features
 
-- Add, edit, and delete sales (date, item, amount, commission % or $)
-- Auto-calculates commission from a default or per-sale rate
-- Summary cards: total sales, total commission, count, average sale
-- Filter by All Time / Today / This Week / This Month / This Year
-- Monthly commission bar chart
-- Export your sales history to CSV
+- Log one running sales total per day — re-entering a date you've already logged updates it instead of creating a duplicate, so you can just re-enter your running total as the day goes
+- Summary cards for Today, This Week (with quota progress bar), This Month, and This Year
+- Daily / Weekly / Monthly / Yearly breakdown table and chart
+- Export your daily totals to CSV
 - Data is saved locally in your browser (no server, no account needed)
 
 ## Running it

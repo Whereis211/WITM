@@ -109,6 +109,25 @@ h2 {
   font-weight: 600;
 }
 
+.card-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.progress {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.2s ease;
+}
+
 .filters {
   display: flex;
   gap: 8px;
@@ -213,20 +232,10 @@ input:focus {
   margin-top: 4px;
 }
 
-.qty-label {
-  max-width: 90px;
-  flex: 0 0 auto;
-}
-
 .form-hint {
   font-size: 0.8rem;
   color: var(--text-muted);
   margin: 0 0 12px;
-}
-
-.search-input {
-  width: 100%;
-  margin-bottom: 8px;
 }
 
 .table-footer {
@@ -306,8 +315,6 @@ th {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  cursor: pointer;
-  user-select: none;
 }
 
 .row-actions {
